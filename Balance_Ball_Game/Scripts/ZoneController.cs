@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -6,41 +7,36 @@ using UnityEngine;
 public class ZoneController : ZoneBase
 {
     [SerializeField] private int maxCircles = 3;
-    private List<GameObject> circles = new List<GameObject>();
+    [SerializeField] private Transform setTransform;
+    [SerializeField] private List<GameObject> circles = new List<GameObject>();
+    private GameObject aboveLimitBall;
     public event Action OnZoneChanged;
-    
-    
+
+
     void OnCollisionEnter2D(Collision2D collision)
     {        
-        if (collision.gameObject.CompareTag("Circle"))
-        {
-            // Проверяем, что круг полностью вошел в зону
-            if (collision.contacts.Any(contact => GetComponent<BoxCollider2D>().bounds.Contains(contact.point)))
+            if (collision.gameObject.CompareTag("Circle"))
             {
-                Debug.Log("Circle yo Zone");
                 HandleCircleCollision(collision.gameObject);
             }
-        }
     }
     private void HandleCircleCollision(GameObject circle)
     {
         if (AddCircle(circle))
         {
-            // Останавливаем физику круга
-            Rigidbody2D rb = circle.GetComponent<Rigidbody2D>();
-            if (rb != null)
-            {
-                rb.velocity = Vector2.zero;
-                rb.angularVelocity = 0;
-                rb.isKinematic = true;
-            }
+            CircleBall circleBehavior = circle.GetComponent<CircleBall>();
+            circleBehavior.SetStaticState();
         }
         else
         {
-            // Уничтожаем круг, если зона заполнена
-            Debug.Log(" Destroy(circle);" + gameObject.name);
-            Destroy(circle);
+            aboveLimitBall = circle;
+            OnZoneChanged?.Invoke();
         }
+    }
+    
+    public GameObject GetAboveLimitBall()
+    {
+        return aboveLimitBall;
     }
 
     public override bool AddCircle(GameObject circle)
@@ -49,20 +45,33 @@ public class ZoneController : ZoneBase
         {
             return false;
         }
-        
-        circle.transform.SetParent(transform);
-        circle.transform.localPosition = Vector2.up * circles.Count * 1.65f;
-        circles.Add(circle);
+        SetInBoxZone(circle);
+
         OnZoneChanged?.Invoke(); // Уведомляем об изменении
         return true;
     }
-
-    public override void Clear()
+    private void SetInBoxZone(GameObject circle)
+    {
+        circle.transform.SetParent(setTransform);
+        float yOffset = circles.Count * 1.8f; // Уменьшите множитель до 0.5f
+        circle.transform.localPosition = new Vector2(0, yOffset);
+        circles.Add(circle);        
+    }
+    IEnumerator RearrangeCircles()
+    {
+        yield return new WaitForSeconds(0.65f);
+        for (int i = 0; i < circles.Count; i++)
+        {           
+            circles[i].transform.localPosition = Vector2.up * i * 1.8f;
+        }
+    }
+    public override void ClearAll()
     {
         foreach (var circle in circles) Destroy(circle);
         circles.Clear();
+        OnZoneChanged?.Invoke();
     }
-
+   
     public override Color? GetColor()
     {
         if (circles.Count == 0) return null;
@@ -85,8 +94,21 @@ public class ZoneController : ZoneBase
     public void RemoveCircleAt(int index)
     {   
         if (index < 0 || index >= circles.Count) return;
+        
         Destroy(circles[index]);
         circles.RemoveAt(index);
+        StartCoroutine(RearrangeCircles());
         OnZoneChanged?.Invoke();
     }
+    public bool IsFull() => circles.Count >= maxCircles;
+
+    public bool IsColorMatch()
+    {
+        if (circles.Count == 0) return false;
+        
+        Color firstColor = circles[0].GetComponent<SpriteRenderer>().color;
+        return circles.All(c => c.GetComponent<SpriteRenderer>().color == firstColor);
+    }
+
+
 }

@@ -24,7 +24,6 @@ public class PendulumSwing : MonoBehaviour
 
     private void FixedUpdate()
     {
-        // Автоматическое изменение направления при достижении угла
         float currentAngle = Mathf.Abs(rigidbd.rotation);
         if (currentAngle >= maxAngle)
         {
@@ -39,23 +38,26 @@ public class PendulumSwing : MonoBehaviour
         hingJoint.motor = motor;
     }
 
-    // Метод для сброса круга (вызывается по нажатию)
     public void ReleaseCircle()
     {
-        // Логика открепления и активации физики для круга
         if (attachedCircle == null) return;
 
-        Rigidbody2D circleRb = attachedCircle.AddComponent<Rigidbody2D>();
-        circleRb.gravityScale = 1f;
-        circleRb.simulated = true;
+        CircleBall circleBehavior = attachedCircle.GetComponent<CircleBall>();
+        circleBehavior.SetFallingState();
         attachedCircle.transform.SetParent(null);
-        OnCircleReleased?.Invoke(attachedCircle); // Уведомляем о сбросе
+        OnCircleReleased?.Invoke(attachedCircle);
         attachedCircle = null;
     }
    
     public void AttachCircle(GameObject circle)
     {
+        CircleBall circleBehavior = circle.GetComponent<CircleBall>();
+        if (circleBehavior == null)
+        {
+            circleBehavior = circle.AddComponent<CircleBall>();
+        }
         attachedCircle = circle;
+        circleBehavior.SetAttachedState(); 
         attachedCircle.transform.position = ballTransform.position;
         attachedCircle.transform.SetParent(transform);
     }

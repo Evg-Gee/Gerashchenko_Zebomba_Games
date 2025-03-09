@@ -14,6 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   circlePrefab: {fileID: 2864686891925542291, guid: 4f050b55f3467b848ba8554bad4404b4, type: 3}
   availableColors:
-  - {r: 1, g: 0.9445122, b: 0, a: 1}
-  - {r: 1, g: 0, b: 0.8657131, a: 1}
-  - {r: 0, g: 0.9999995, b: 1, a: 1}
+  - {r: 1, g: 0, b: 0, a: 1}
+  - {r: 0, g: 1, b: 1, a: 1}
+  - {r: 1, g: 0, b: 1, a: 1}

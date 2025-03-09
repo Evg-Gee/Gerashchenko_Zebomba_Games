@@ -9,9 +9,10 @@ public class ComboChecker : MonoBehaviour, IComboChecker
     [SerializeField] private ParticleSystem comboParticles;
 
     public event Action<Color> OnComboDetected = delegate { };
+    public event Action<Color> OnMinusScore = delegate { };
+    
     private void OnEnable()
     {
-        // Подписываемся на события всех зон
         foreach (var zone in zones)
         {
             zone.OnZoneChanged += CheckCombos;
@@ -20,7 +21,6 @@ public class ComboChecker : MonoBehaviour, IComboChecker
 
     private void OnDisable()
     {
-        // Отписываемся для избежания утечек памяти
         foreach (var zone in zones)
         {
             zone.OnZoneChanged -= CheckCombos;
@@ -28,160 +28,108 @@ public class ComboChecker : MonoBehaviour, IComboChecker
     }
     public void CheckCombos()
     {
+        DestroyAboveLimitBall();
         CheckHorizontalCombos();
         CheckVerticalCombos();
         CheckDiagonalCombos();
     }
-
+    private void DestroyAboveLimitBall()
+    {
+        foreach (var zone in zones)
+        {
+            if (zone.GetAboveLimitBall())
+            {
+                Color comboColor = zone.GetColor().Value;
+                SpawnParticles(zone.GetAboveLimitBall().transform.position);
+                Destroy(zone.GetAboveLimitBall().gameObject);
+                
+                OnMinusScore?.Invoke(comboColor);
+            }
+        }
+    }
     private void CheckHorizontalCombos()
     {
-    Debug.Log("CheckHorizontalCombos()");
+        foreach (var zone in zones)
+            {
+                if (zone.IsFull() && zone.IsColorMatch())
+                {
+                    Vector2[] positions = zone.GetCirclePositions();
+                    SpawnParticles(positions);
+                    OnComboDetected?.Invoke(zone.GetColor().Value);
+                    zone.ClearAll();
+                }
+            }
+    }
+    private void CheckDiagonal(SpriteRenderer c1, SpriteRenderer c2, SpriteRenderer c3)
+{
+    if (c1 == null || c2 == null || c3 == null) return;
+    if (c1.color != c2.color || c2.color != c3.color) return;
 
-    foreach (var zone in zones)
-    {
-        // Проверяем, что в зоне ровно 3 круга и все одного цвета
-        if (zone.GetCirclePositions().Length == 3 && zone.GetColor().HasValue)
-        {
-            Color comboColor = zone.GetColor().Value;
-            
-            // Спавним партиклы в позициях кругов
-            SpawnParticles(zone.GetCirclePositions());
-            
-            // Очищаем зону
-            zone.Clear();
-            
-            // Уведомляем о комбо
-            OnComboDetected?.Invoke(comboColor);
-        }
-    }
-    }
+    Vector2[] positions = { c1.transform.position, c2.transform.position, c3.transform.position };
+    SpawnParticles(positions);
+
+    int index1 = c1.transform.GetSiblingIndex();
+    int index2 = c2.transform.GetSiblingIndex();
+    int index3 = c3.transform.GetSiblingIndex();
+
+    zones[0].RemoveCircleAt(index1);
+    zones[1].RemoveCircleAt(index2);
+    zones[2].RemoveCircleAt(index3);
+
+    OnComboDetected?.Invoke(c1.color);
+}
     private void CheckDiagonalCombos()
     {
-        if (zones.Length != 3) return; // Только для 3 зон
+        if (zones.Length != 3) return;
 
-        // Диагональ слева-направо (↓)
-        var diagonal1 = new List<Vector2>();
-        for (int i = 0; i < 3; i++)
-        {
-            var zone = zones[i];
-            if (zone.GetCirclePositions().Length > i) // Проверка границ
-            {
-                Vector2 pos = zone.GetCirclePositions()[i];
-                diagonal1.Add(pos);
-            }
-        }
+        CheckDiagonal(
+            zones[0].GetCircleAtPosition(0),
+            zones[1].GetCircleAtPosition(1),
+            zones[2].GetCircleAtPosition(2)
+        );
 
-        if (diagonal1.Count == 3 && CheckSameColor(diagonal1))
-        {
-            SpawnParticles(diagonal1.ToArray());
-            for (int i = 0; i < 3; i++)
-            {
-                if (zones[i].GetCirclePositions().Length > i)
-                    zones[i].RemoveCircleAt(i);
-            }
-            OnComboDetected?.Invoke(GetColor(diagonal1[0]));
-        }
-
-        // Диагональ справа-налево (↓)
-        var diagonal2 = new List<Vector2>();
-        for (int i = 0; i < 3; i++)
-        {
-            int zoneIndex = 2 - i;
-            var zone = zones[zoneIndex];
-            if (zone.GetCirclePositions().Length > i) // Проверка границ
-            {
-                Vector2 pos = zone.GetCirclePositions()[i];
-                diagonal2.Add(pos);
-            }
-        }
-
-        if (diagonal2.Count == 3 && CheckSameColor(diagonal2))
-        {
-            SpawnParticles(diagonal2.ToArray());
-            for (int i = 0; i < 3; i++)
-            {
-                int zoneIndex = 2 - i;
-                if (zones[zoneIndex].GetCirclePositions().Length > i)
-                    zones[zoneIndex].RemoveCircleAt(i);
-            }
-            OnComboDetected?.Invoke(GetColor(diagonal2[0]));
-        }
+        CheckDiagonal(
+            zones[2].GetCircleAtPosition(0),
+            zones[1].GetCircleAtPosition(1),
+            zones[0].GetCircleAtPosition(2)
+        );
     }
     
-    // private void CheckDiagonalCombos()
-    // {
-    //     if (zones.Length < 3) return;
-
-    //     // Диагональ слева-направо (↓)
-    //     var diagonal1 = new List<Vector2>();
-    //     for (int i = 0; i < 3; i++)
-    //     {
-    //         if (i < zones[i].GetCirclePositions().Length)
-    //         {
-    //             Vector2 pos = zones[i].GetCirclePositions()[i]; // Vector2
-    //             diagonal1.Add(pos);
-    //         }
-    //     }
-
-    //     if (diagonal1.Count == 3 && CheckSameColor(diagonal1))
-    //     {
-    //         SpawnParticles(diagonal1.ToArray());
-    //         ClearDiagonal(zones, 0, 1, 2); // Удаляем круги
-    //         OnComboDetected?.Invoke(GetColor(diagonal1[0]));
-    //     }
-
-    //     // Диагональ справа-налево (↓)
-    //     var diagonal2 = new List<Vector2>();
-    //     for (int i = 0; i < 3; i++)
-    //     {
-    //         int zoneIndex = 2 - i;
-    //         if (zoneIndex < zones[zoneIndex].GetCirclePositions().Length)
-    //         {
-    //             Vector2 pos = zones[zoneIndex].GetCirclePositions()[i];
-    //             diagonal2.Add(pos);
-    //         }
-    //     }
-
-    //     if (diagonal2.Count == 3 && CheckSameColor(diagonal2))
-    //     {
-    //         SpawnParticles(diagonal2.ToArray());
-    //         ClearDiagonal(zones, 2, 1, 0); // Удаляем круги
-    //         OnComboDetected?.Invoke(GetColor(diagonal2[0]));
-    //     }
-    // }
     private void CheckVerticalCombos()
     {
         if (zones.Length != 3) return;
 
         for (int column = 0; column < 3; column++)
         {
-            var columnPositions = new List<Vector2>();
+            var columnCircles = new List<SpriteRenderer>();
+
             foreach (var zone in zones)
             {
-                if (zone.GetCirclePositions().Length > column) // Проверка границ
-                {
-                    Vector2 pos = zone.GetCirclePositions()[column];
-                    columnPositions.Add(pos);
-                }
+                SpriteRenderer circle = zone.GetCircleAtPosition(column);
+                if (circle != null)
+                columnCircles.Add(circle);
             }
 
-            if (columnPositions.Count == 3 && CheckSameColor(columnPositions))
+            if (columnCircles.Count == 3 && columnCircles.All(c => c.color == columnCircles[0].color))
             {
-                SpawnParticles(columnPositions.ToArray());
+                Vector2[] positions = columnCircles.Select(c =>(Vector2) c.transform.position).ToArray();
+                SpawnParticles(positions);
+
                 foreach (var zone in zones)
                 {
-                    if (zone.GetCirclePositions().Length > column)
-                        zone.RemoveCircleAt(column);
+                    zone.RemoveCircleAt(column);
                 }
-                OnComboDetected?.Invoke(GetColor(columnPositions[0]));
+
+                OnComboDetected?.Invoke(columnCircles[0].color);
             }
         }
     }
-
-
     private bool CheckSameColor(List<Vector2> positions)
     {
-        if (positions.Count == 0) return false;
+        if (positions.Count == 0)
+        {
+            return false;
+        }
         Color firstColor = GetColor(positions[0]);
         return positions.All(pos => GetColor(pos) == firstColor);
     }
@@ -201,34 +149,19 @@ public class ComboChecker : MonoBehaviour, IComboChecker
         }
         return Color.clear;
     }
-    // private Color GetColor(Vector2 position)
-    // {
-    //     foreach (var zone in zones)
-    //     {
-    //         foreach (var circle in zone.GetCirclePositions())
-    //         {
-    //             if (circle == position)
-    //             {
-    //                 return zone.GetColor().Value;
-    //             }
-    //         }
-    //     }
-    //     return Color.clear;
-    // }
-
-    private void ClearDiagonal(ZoneController[] zones, int index1, int index2, int index3)
-    {
-        zones[index1].RemoveCircleAt(index1);
-        zones[index2].RemoveCircleAt(index2);
-        zones[index3].RemoveCircleAt(index3);
-    }
+        
     private void SpawnParticles(Vector2[] positions)
-    {
+    {                
         foreach (var pos in positions)
         {
-            Instantiate(comboParticles, pos, Quaternion.identity);
+            var particle = Instantiate(comboParticles, pos, Quaternion.identity);
+            Destroy(particle.gameObject, 2.5f);     
         }
     }
-
-
+    private void SpawnParticles(Vector2 position)
+    {                
+        var particle = Instantiate(comboParticles, position, Quaternion.identity);   
+        
+        Destroy(particle.gameObject, 2.5f);     
+    }
 }

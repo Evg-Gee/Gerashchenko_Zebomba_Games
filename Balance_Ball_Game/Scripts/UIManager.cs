@@ -5,6 +5,7 @@ using UnityEngine.SceneManagement;
 public class UIManager : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI scoreText;
+    [SerializeField] private TextMeshProUGUI finalScoreText;
     [SerializeField] private GameObject gameOverScreen;
 
     public void UpdateScore(int score)
@@ -15,10 +16,11 @@ public class UIManager : MonoBehaviour
     public void ShowGameOverScreen(int finalScore)
     {
         gameOverScreen.SetActive(true);
-        gameOverScreen.GetComponentInChildren<TextMeshProUGUI>().text = $"Final Score: {finalScore}";
+        finalScoreText.text = $"Final Score: {finalScore}";
     }
     public void OnRestartButton()
 {
+    Time.timeScale = 1f;
     SceneManager.LoadScene(SceneManager.GetActiveScene().name);
 }
 }

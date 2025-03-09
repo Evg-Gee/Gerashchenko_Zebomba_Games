@@ -13,6 +13,7 @@ public class GameManager : MonoBehaviour
     void Awake()
     {
         scoreManager = new ScoreManager();
+         gameState.Initialize(scoreManager);
     }
     void Start()
     {
@@ -23,14 +24,17 @@ public class GameManager : MonoBehaviour
     {
         InputHandler.OnTap += HandleTap;
         comboChecker.OnComboDetected += HandleCombo;
+        //comboChecker.OnComboDetected += scoreManager.AddScore;
+        comboChecker.OnMinusScore += HandleMinusScore;
         gameState.OnGameOver += HandleGameOver;
-        comboChecker.OnComboDetected += scoreManager.AddScore;
     }
 
     private void OnDisable()
     {
         InputHandler.OnTap -= HandleTap;
         comboChecker.OnComboDetected -= HandleCombo;
+        //comboChecker.OnComboDetected -= scoreManager.AddScore;
+        comboChecker.OnMinusScore -= HandleMinusScore;
         gameState.OnGameOver -= HandleGameOver;
     }
     private void HandleTap()
@@ -42,7 +46,7 @@ public class GameManager : MonoBehaviour
         else
         {
             GameObject circle = circleFactory.CreateCircle();
-            if (circle != null) // Проверка на null после создания
+            if (circle != null)
             {            
                 pendulum.AttachCircle(circle);
             }
@@ -53,10 +57,16 @@ public class GameManager : MonoBehaviour
         scoreManager.AddScore(color);
         uiManager.UpdateScore(scoreManager.GetCurrentScore());
     }
+    private void HandleMinusScore(Color color)
+    {
+        scoreManager.SubtractScore(color);
+        uiManager.UpdateScore(scoreManager.GetCurrentScore());
+    }
 
     private void HandleGameOver()
     {
         uiManager.ShowGameOverScreen(scoreManager.GetCurrentScore());
+        Time.timeScale = 0;
     }
     private void InitializePendulum()
     {

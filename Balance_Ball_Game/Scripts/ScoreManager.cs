@@ -6,12 +6,14 @@ using UnityEngine;
 public class ScoreManager : IScoreManager
 {
     private int score;
+    public event Action<int> OnScoreChanged = delegate { };
     private readonly Dictionary<Color, int> scoreMap = new Dictionary<Color, int>
     {
         { Color.red, 10 },
-        { Color.blue, 20 },
-        { Color.green, 30 }
+        { Color.magenta, 20 },
+        { Color.cyan, 30 }
     };
+    
 
     public void AddScore(Color color)
     {
@@ -20,6 +22,16 @@ public class ScoreManager : IScoreManager
             score += value;
         }
     }
+    public void SubtractScore(Color color)
+    {
+        if (scoreMap.TryGetValue(color, out int value))
+        {
+            Debug.Log("MinusScore " + color+value);
+            score -= value;
+            OnScoreChanged?.Invoke(score);
+        }
+    }
+    
 
     public int GetCurrentScore() => score;
 }
