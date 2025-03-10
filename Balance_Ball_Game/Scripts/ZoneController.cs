@@ -15,10 +15,14 @@ public class ZoneController : ZoneBase
 
     void OnCollisionEnter2D(Collision2D collision)
     {        
-            if (collision.gameObject.CompareTag("Circle"))
-            {
-                HandleCircleCollision(collision.gameObject);
-            }
+        if (collision.gameObject.CompareTag("Circle"))
+        {
+            CircleBall circle = collision.gameObject.GetComponent<CircleBall>();
+            if (circle != null && circle.isHandled) return;
+                        
+            HandleCircleCollision(collision.gameObject);
+          
+        }
     }
     private void HandleCircleCollision(GameObject circle)
     {
@@ -31,6 +35,7 @@ public class ZoneController : ZoneBase
         {
             aboveLimitBall = circle;
             OnZoneChanged?.Invoke();
+            Destroy(circle.gameObject);
         }
     }
     
@@ -40,7 +45,12 @@ public class ZoneController : ZoneBase
     }
 
     public override bool AddCircle(GameObject circle)
-    {
+    {   
+        if (circle == null || circle.GetComponent<SpriteRenderer>() == null)
+        {
+            Debug.LogError("Circle is invalid!");
+            return false;
+        }
         if (circles.Count >= maxCircles) 
         {
             return false;
@@ -59,18 +69,22 @@ public class ZoneController : ZoneBase
     }
     IEnumerator RearrangeCircles()
     {
-        yield return new WaitForSeconds(0.65f);
+        yield return new WaitForSeconds(0.15f);
         for (int i = 0; i < circles.Count; i++)
         {           
             circles[i].transform.localPosition = Vector2.up * i * 1.8f;
         }
     }
+    
     public override void ClearAll()
     {
-        foreach (var circle in circles) Destroy(circle);
+        foreach (var circle in circles)
+        {
+            Destroy(circle);
+        } 
         circles.Clear();
         OnZoneChanged?.Invoke();
-    }
+    }          
    
     public override Color? GetColor()
     {
@@ -96,7 +110,7 @@ public class ZoneController : ZoneBase
         if (index < 0 || index >= circles.Count) return;
         
         Destroy(circles[index]);
-        circles.RemoveAt(index);
+        circles.RemoveAt(index);        
         StartCoroutine(RearrangeCircles());
         OnZoneChanged?.Invoke();
     }
@@ -105,7 +119,11 @@ public class ZoneController : ZoneBase
     public bool IsColorMatch()
     {
         if (circles.Count == 0) return false;
-        
+        foreach (var circle in circles)
+        {
+            if (circle == null || circle.GetComponent<SpriteRenderer>() == null)
+                return false;
+        }
         Color firstColor = circles[0].GetComponent<SpriteRenderer>().color;
         return circles.All(c => c.GetComponent<SpriteRenderer>().color == firstColor);
     }

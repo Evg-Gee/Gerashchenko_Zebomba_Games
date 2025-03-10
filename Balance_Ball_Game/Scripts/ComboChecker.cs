@@ -41,7 +41,6 @@ public class ComboChecker : MonoBehaviour, IComboChecker
             {
                 Color comboColor = zone.GetColor().Value;
                 SpawnParticles(zone.GetAboveLimitBall().transform.position);
-                Destroy(zone.GetAboveLimitBall().gameObject);
                 
                 OnMinusScore?.Invoke(comboColor);
             }

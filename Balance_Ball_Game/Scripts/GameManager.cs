@@ -8,23 +8,27 @@ public class GameManager : MonoBehaviour
     [SerializeField] private ComboChecker comboChecker;
     [SerializeField] private GameStateManager gameState;
     [SerializeField] private UIManager uiManager;
+    [SerializeField] private AudioManager _audioManager;
+    
+    
     private ScoreManager scoreManager;
     
     void Awake()
     {
         scoreManager = new ScoreManager();
-         gameState.Initialize(scoreManager);
+        gameState.Initialize(scoreManager);
     }
     void Start()
     {
         InitializePendulum();
+        uiManager.Initialize(_audioManager);
+        _audioManager.PlayOSTSound();
     }
     
     private void OnEnable()
     {
         InputHandler.OnTap += HandleTap;
         comboChecker.OnComboDetected += HandleCombo;
-        //comboChecker.OnComboDetected += scoreManager.AddScore;
         comboChecker.OnMinusScore += HandleMinusScore;
         gameState.OnGameOver += HandleGameOver;
     }
@@ -33,7 +37,6 @@ public class GameManager : MonoBehaviour
     {
         InputHandler.OnTap -= HandleTap;
         comboChecker.OnComboDetected -= HandleCombo;
-        //comboChecker.OnComboDetected -= scoreManager.AddScore;
         comboChecker.OnMinusScore -= HandleMinusScore;
         gameState.OnGameOver -= HandleGameOver;
     }
@@ -41,30 +44,35 @@ public class GameManager : MonoBehaviour
     {
         if (pendulum.HasCircle())
         {
+            _audioManager.PlayPendulumClick();
             pendulum.ReleaseCircle();
         }
         else
         {
             GameObject circle = circleFactory.CreateCircle();
             if (circle != null)
-            {            
+            {    
+                _audioManager.PlayUiButtonClick();       
                 pendulum.AttachCircle(circle);
             }
         }
     }
     private void HandleCombo(Color color)
     {
+        _audioManager.PlayComboExplosion();
         scoreManager.AddScore(color);
         uiManager.UpdateScore(scoreManager.GetCurrentScore());
     }
     private void HandleMinusScore(Color color)
     {
+        _audioManager.PlayMinusScore();
         scoreManager.SubtractScore(color);
         uiManager.UpdateScore(scoreManager.GetCurrentScore());
     }
 
     private void HandleGameOver()
     {
+        _audioManager.PlayGameOver();
         uiManager.ShowGameOverScreen(scoreManager.GetCurrentScore());
         Time.timeScale = 0;
     }

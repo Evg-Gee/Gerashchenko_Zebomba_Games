@@ -26,7 +26,6 @@ public class ScoreManager : IScoreManager
     {
         if (scoreMap.TryGetValue(color, out int value))
         {
-            Debug.Log("MinusScore " + color+value);
             score -= value;
             OnScoreChanged?.Invoke(score);
         }

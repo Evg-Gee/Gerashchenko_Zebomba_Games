@@ -8,7 +8,7 @@ public class CircleBall : MonoBehaviour
 {
     private Rigidbody2D _rigidbody;
     private CircleCollider2D _circleCollider;
-    
+    public bool isHandled = false;
     void Awake()
     {
         _rigidbody = GetComponent<Rigidbody2D>();
@@ -47,6 +47,7 @@ public class CircleBall : MonoBehaviour
             _rigidbody.angularVelocity = 0;
         }
         
-        _circleCollider.enabled = true; 
+         isHandled = true; 
+        _circleCollider.enabled = false; 
         }
     }
